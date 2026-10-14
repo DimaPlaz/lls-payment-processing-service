@@ -1,0 +1,68 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools >= 75.5"]
+
+[project]
+authors = [
+  {name = "d.kutlubaev"}
+]
+dependencies = [
+  "fastapi==0.142.*",
+  "pydantic==2.*",
+  "pydantic-settings==2.2.*",
+  "python-cqrs[pydantic,sqlalchemy]==5.0.*",
+  "faststream[rabbit,cli]==0.7.*",
+  "sqlalchemy[asyncio]==2.0.*",
+  "asyncpg==0.32.0",
+  "alembic==1.20.0",
+  "httpx==0.28.1",
+  "asgi-idempotency-header==0.2.0",
+  # asgi-idempotency-header безусловно импортирует redis в backends/__init__.py, сам redis-сервер не нужен
+  "redis==5.3.*",
+  "uvicorn==0.54.*"
+]
+name = "llc_mkk_basis_test"
+requires-python = ">= 3.12"
+version = "0.0.1"
+
+[project.optional-dependencies]
+git = [
+  "pycln==2.5.0",
+  "pre-commit==3.7.1",
+  "jq==1.7.0"
+]
+lint = [
+  "pyright==1.1.377",
+  "ruff==0.6.2"
+]
+tests = [
+  "pytest==9.1.*",
+  "pytest-env==1.7.*",
+  "pytest-asyncio==1.4.*",
+  "pytest-cov==7.1.*",
+  "Faker==40.40.*"
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.pytest_env]
+APP_DEBUG = "True"
+API_AUTH_KEY = "test-api-key"
+API_IDEMPOTENCY_REQUIRE = "False"
+DB_HOSTNAME = "localhost"
+DB_PORT = "5432"
+DB_DATABASE = "test"
+DB_USER = "test"
+DB_PASSWORD = "test"
+RABBITMQ_HOSTNAME = "localhost"
+RABBITMQ_PORT = "5672"
+RABBITMQ_USER = "guest"
+RABBITMQ_PASSWORD = "guest"
+
+[tool.ruff]
+line-length = 120

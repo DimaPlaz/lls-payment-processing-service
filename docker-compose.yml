@@ -1,0 +1,83 @@
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: llc-mkk-basis-test:latest
+  env_file: .env
+  environment:
+    DB_HOSTNAME: postgres
+    DB_PORT: 5432
+    RABBITMQ_HOSTNAME: rabbitmq
+    RABBITMQ_PORT: 5672
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - 5430:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  migrations:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: ["uvicorn", "payments.presentation.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - 8000:8000
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  consumer:
+    <<: *app
+    command: ["faststream", "run", "payments.presentation.consumer.main:app"]
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  publisher:
+    <<: *app
+    command: ["python", "-m", "payments.presentation.publisher.main"]
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

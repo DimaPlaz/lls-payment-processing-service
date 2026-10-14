@@ -1,0 +1,14 @@
+venv
+.venv
+.git
+.idea
+.env
+.coverage
+.pytest_cache
+.ruff_cache
+**/__pycache__
+**/*.egg-info
+build
+tests
+app.log
+docker-compose.yml
